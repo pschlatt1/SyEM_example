@@ -11,3 +11,5 @@ Philipp Schlatter - pschlatt@mech.kth.se<br />
 ## Documentation
 A `setup.py` script is provided to get you started.<br />
 Run `python setup.py` to execute the setup.
+
+The [pipeMeshNek](https://github.com/jcanton/pipeMeshNek) software (automatically fetched by `setup.py`) is used for the generation of the mesh and .rea file parameters.
