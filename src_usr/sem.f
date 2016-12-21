@@ -1,10 +1,10 @@
-C	Divergence free Synthetic eddy method module for NEK5000
-C
-C User needs to provide 
-C  -dimensions of the eddy box (in usrdat)
+c Divergence free Synthetic eddy method module for NEK5000
+c
+c User needs to provide 
+c  -dimensions of the eddy box (in usrdat)
 c  -A few input parameters 
 c     (e.g. # of eddies, max(sigma), ..
-C  -sem_input.txt 
+c  -sem_input.txt 
 c     containing 
 c       -1d-pos
 c       -k(pos)
@@ -12,11 +12,12 @@ c       -epsilon(pos)
 c       -umean(pos)
 c
 c   The latter two are are e.g. 
-c   generated with Matlab-Script from DNS-Pipedata
-C
-C	Lorenz Hufnagel hufnagel@kth.se
-C Based on code by Oana Marin
-C
+c   generated with a  Matlab script from DNS data
+c
+c Lorenz Hufnagel hufnagel@kth.se
+c Jacopo Canton jcanton@mech.kth.se
+c Based on the code by Oana Marin
+c
 
       module SEM
          implicit none

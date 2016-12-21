@@ -3,7 +3,7 @@ c     Turbulent pipe flow
 c     Along (positive) z-direction
 c     
 c     Turbulence at inlet is "generated" with divergence-free 
-c     synthetic eddy method (DFSEMiso)
+c     synthetic eddy method (DFSyEMiso)
 c     Poletto, Ruggero: Divergence free development of the synthetic eddy method 
 c     in order to improve synthetic turbulence for embedded les simulations,
 c     PhD Thesis, The University of Manchester, 2015
