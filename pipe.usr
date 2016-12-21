@@ -1,0 +1,314 @@
+c-----------------------------------------------------------------------
+c     Turbulent bent pipe flow 
+c     Along (positive) z-direction
+c     
+c     Turbulence at inlet is "generated" with divergence-free 
+c     synthetic eddy method (DFSEMiso)
+c     Poletto, Ruggero: Divergence free development of the synthetic eddy method 
+c     in order to improve synthetic turbulence for embedded les simulations,
+c     PhD Thesis, The University of Manchester, 2015
+c
+c     See also SEM:
+c     JARRIN, Nicolas, et al. A synthetic-eddy-method for
+c     generating inflow conditions for large-eddy simulations. International
+c     Journal of Heat and Fluid Flow, 2006, 27. Jg., Nr. 4, S. 585-593.
+c
+c     Lorenz Hufnagel, hufnagel@kth.se
+c-----------------------------------------------------------------------
+
+      subroutine uservp (ix,iy,iz,ieg)
+      return
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine userf  (ix,iy,iz,ieg)
+      return
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine userq  (ix,iy,iz,ieg)
+      return
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine userchk
+        use AVG, only: tstart
+      implicit none
+
+      include 'SIZE_DEF'
+      include 'SIZE'  ! L[XYZ]1,LELV,NID
+      include 'MASS_DEF'
+      include 'MASS' ! BM1
+      include 'TSTEP_DEF'
+      include 'TSTEP' ! ISTEP,IOSTEP
+      include 'INPUT_DEF'
+      include 'INPUT' ! PARAM
+      include 'SOLN_DEF'      
+      include 'SOLN'  ! V[XYZ],V[XYZ]P
+      include 'CHKPOINT'
+
+      real, external :: dnekclock, glmax ! defined in math.f
+
+      real divv
+      COMMON /SCRUZ/  DIVV (LX2,LY2,LZ2,LELV)
+      real work1(lx1,ly1,lz1,lelv)
+     $  , work2(lx1,ly1,lz1,lelv)
+     $  , divm1(lx1,ly1,lz1,lelv)
+      integer ntdump
+      common /rdump/ ntdump
+
+      real rtime, tic
+      save rtime
+      data rtime  /0./
+      real divmax
+
+      ! Output maximum of divergence
+C     This maps divergence from pressure (Pn-2) to velocity mesh (Pn)
+      call mappr(divm1,divv,work1,work2)
+C     and averages the divergence on element boundaries
+c     In contrast to outpost(), which does not average
+c       when writing divergence in pressure ouput 
+c     -> therefore, slight discrepancy < ~ factor 2
+
+      divmax = glmax(divm1, nx1*ny1*nz1*nelv)
+
+      if (nid.eq.0) write(*,*) '||div||_max', Divmax
+
+c     output divergence (in pressure field)
+c     if (mod(ISTEP,IOSTEP).eq.0.and. istep.gt.0) then
+c        call outpost(vx,vy,vz,divv,t,'div')
+c     endif
+
+      if ((iostep.gt.0.and.istep.gt.0.and.mod(ISTEP,IOSTEP).eq.0).or.
+     $ (timeio.gt.0.and.time.ge.(ntdump + 1)*timeio)) then
+         if (NID.eq.0) write(6,*) ISTEP,IOSTEP,TIME,' compute lambda2'
+      ! Compute lambda_2 
+         call lambda2(t(1,1,1,1,1))
+      endif
+
+      ! DFSEM
+      tic=dnekclock()
+      call synthetic_eddies
+      rtime = rtime + (dnekclock()-tic)
+
+      if(istep.eq.nsteps.and.nid.eq.0) 
+     $  write(6,'(A,e15.4)') 'synth. eddy method time = ', rtime
+
+      ! Statistics
+
+c     Start recording at least after initial synthetic eddies 
+c     have left pipe
+c     (L/u_bulk)/dt plus tolerance
+
+      if (time.ge.tstart.and.istep.ge.1) then
+        call avg_stat_all
+      endif
+
+      ! Restart routines
+      call checkpoint
+
+      ! This call is already executed in setics()/ic.f
+      ! However, it has the wrong time time-value (=0.0) 
+      ! when using our restarting, which initializes 'time' 
+      if (istep.eq.0.and.timeio.ne.0.0)  then
+        ntdump = int( (time+1e-14)/timeio )
+      endif
+
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine userbc (ix,iy,iz,iside,ieg)
+c     NOTE ::: This subroutine MAY NOT be called by every process
+        use SEM, only: u_sem, v_sem, w_sem, bulk_vel_diff
+
+      implicit none
+
+      include 'SIZE_DEF'
+      include 'SIZE'  ! L[XYZ]1,LELV
+      include 'PARALLEL_DEF'
+      include 'PARALLEL'  ! GLLEL
+      include 'INPUT_DEF'
+      include 'INPUT'  ! IF3D
+      include 'NEKUSE_DEF'
+      include 'NEKUSE'! U[XYZ],PA,TEMP,CBU
+
+      integer, intent(in) :: ix,iy,iz,iside,ieg
+      integer iel
+
+      ! Prescribe DFSEM inflow
+
+      iel=gllel(ieg)
+      ux= u_sem(ix,iy,iz,iel) 
+      uy= v_sem(ix,iy,iz,iel) 
+      uz= w_sem(ix,iy,iz,iel) + bulk_vel_diff
+
+      temp = 0.0d0
+
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine useric (ix,iy,iz,ieg)
+      use SEM, only: nElinlet, umean_inlet
+      implicit none
+
+      include 'SIZE_DEF'
+      include 'SIZE'  ! L[XYZ]1,LELV
+      include 'NEKUSE_DEF'
+      include 'NEKUSE'! U[XYZ], [XYZ]
+      include 'USERPAR' 
+
+      integer, intent(in) :: ix,iy,iz,ieg
+
+      integer ex
+      real vel, angle
+
+      ! Prescribe mean inflow profile used by DFSEM as IC
+c     NOTE: The bending of the mean velocity does not look
+c     perfectly plausible. Especially for stronger curvatures 
+c     the velocity maximum seems focused towards the inner wall
+
+      ex = mod(ieg-1,nElInlet)+1 
+
+      vel = umean_inlet(ix,iy,ex)
+
+      Uy = 0.
+      Ux = 0.
+      Uz = vel
+
+      if (abs(bent_phi).gt.1e-10) then
+
+        if (z.gt.0) then
+          angle = atan2(z,x)
+          if (angle.le.bent_phi) then
+            Ux = -vel*sin(angle)
+            Uz = vel*cos(angle)
+          else
+            Ux = -vel*sin(bent_phi) 
+            Uz = vel*cos(bent_phi)
+          endif
+        elseif (z.le.0.and.x.lt.0) then
+          Ux = -vel*sin(bent_phi) 
+          Uz = vel*cos(bent_phi)
+        endif
+      endif
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine usrdat
+      use SEM, only: zbmin, zbmax, ybmax,
+     &   sigma_max, z_inlet
+      implicit none
+      real, external :: glmin, glmax ! defined in math.f
+
+      include 'SIZE_DEF'
+      include 'SIZE' ! nelv
+      include 'INPUT_DEF' 
+      include 'INPUT' ! [xyz]c
+      include 'TSTEP_DEF'
+      include 'TSTEP' ! ISTEP,IOSTEP
+      include 'USERPAR' 
+      include 'CHKPOINT'
+
+      real ymax
+
+      ! Read user module parameters
+      call uprm_read
+
+      if (.not.CHKPTSTEP.eq.IOSTEP) then
+         if (NID.eq.0) write(6,*) 
+     $ '!!!Warning!!! It is recommended to run with IOSTEP ==CHKPTSTEP'
+      ! To obtain time-equidistnat POD snapshots across restarts
+      endif
+
+      ! Initialize DFSEM variables
+      
+c     The bounding "box" (actually a cylinder for the pipe)
+c     is just large enough to contain the compact support of all
+c     eddies. 
+
+c     ybmin = glmin(yc,8*nelv)
+      ybmax = glmax(yc,8*nelv) 
+c     xbmin = glmin(xc,8*nelv)
+c     xbmax = glmax(xc,8*nelv)
+      z_inlet  = glmin(zc,8*nelv)
+
+      if (abs(bent_phi).gt.1e-10) then
+        z_inlet  = z_inlet + z_offset
+      endif
+
+      zbmin = z_inlet - sigma_max
+      zbmax = z_inlet + sigma_max
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine usrdat2
+        implicit none
+      include 'SIZE_DEF'
+      include 'SIZE' ! nelv
+      include 'GEOM_DEF'
+      include 'GEOM' 
+      include 'NEKUSE_DEF'
+      include 'NEKUSE' ! XM1
+      include 'INPUT_DEF'
+      include 'INPUT' 
+      include 'USERPAR' 
+
+      integer i
+      real angle, circumf
+
+      ! Initialize SEM, once GLL points are distributed
+      call SEMinit
+
+      if (abs(bent_phi).gt.1e-10) then
+
+c     Bend and translate the straight pipe
+c     The sweep of the bent arc is bent_phi
+c     The pipe inlet is moved at (0,r1,0) so that the center of the bend
+c     is in (0,0,0)
+
+      circumf = bent_radius*bent_phi
+c
+      do i=1,nx1*ny1*nz1*nelv
+        zm1(i,1,1,1) = zm1(i,1,1,1) + z_offset
+        xm1(i,1,1,1) = xm1(i,1,1,1) + bent_radius
+
+        if (zm1(i,1,1,1).gt.0.and.zm1(i,1,1,1).le.circumf) then
+          angle=zm1(i,1,1,1)/bent_radius
+          zm1(i,1,1,1) = xm1(i,1,1,1)*sin(angle)
+          xm1(i,1,1,1) = xm1(i,1,1,1)*cos(angle)
+        elseif (zm1(i,1,1,1).gt.circumf) then
+
+          angle = zm1(i,1,1,1) - circumf
+
+          zm1(i,1,1,1) = xm1(i,1,1,1)*sin(bent_phi)
+     $    + angle*cos(bent_phi)
+          xm1(i,1,1,1) = xm1(i,1,1,1)*cos(bent_phi) 
+     $    - angle*sin(bent_phi)
+        endif
+      enddo
+      param(59) = 1. ! 1 = deformed mesh
+
+      endif
+        
+      return
+      end
+
+c-----------------------------------------------------------------------
+
+      subroutine usrdat3
+        implicit none
+      return
+      end
+
+c------------------------------------------------------------------------

@@ -1,0 +1,7 @@
+!     missing definitions in ZPER
+      integer lfdm0, lelg_sm, ltfdm2, leig2, leig, lp_small,
+     $    lfdx, lfdy, lfdz, ind23, mcex
+      integer mlp, msp, msg_id, neigx, neigy, neigz, ngfdm_p, ngfdm_v
+      integer nelx, nely, nelz, nelxy
+      real bxyi,eigp, rx2, ry2, sp, spt, sx2, sy2, w2d, wavep, xgtp,
+     $  xmlt, ygtp, ymlt, zgtp, zmlt
