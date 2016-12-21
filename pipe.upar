@@ -6,17 +6,17 @@
 &AVG_LIST
  tstart=30, ! (physical) starting time (seconds) of averaging
  nSlices=18, ! upper limit of 50, adapt avg-all.f in case
- nElperFace=960,
+ nElperFace=68,
  delta_time_avg=4.0420266e-2, ! = tstar, create statistical records every (1s)+
  zslices=0.,1.,2.,3.,4.,5.,6.,7.,8.,9.,10., ! Takes the centerline-z-value of the unbent, but shifted pipe (by z_offset above) 
  /
 &CHKPOINT
  CHKPTSTEP=50000,
- IFCHKPTRST=T,
+ IFCHKPTRST=F,
  /
 &SEM_LIST
  neddy=10000,
- nElInlet=320,
+ nElInlet=68,
  yplus_cutoff=0.472384, ! R-10*lstar at Re_tau = 180, R=0.5
  sigma_max=0.5497, ! overestimating this a little won't hurt
  u0=1.0,
