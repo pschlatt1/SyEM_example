@@ -38,6 +38,7 @@ except AssertionError:
 
 print('\tDone.\n')
 
+
 #------------------------------------------------------------------------------
 # import nek5000
 #
@@ -101,8 +102,85 @@ if os.path.isfile('makenek'):
 	st = os.stat('makenek')
 	os.chmod('makenek', st.st_mode | stat.S_IEXEC)
 
+print('\tDone.\n')
+
+
+#------------------------------------------------------------------------------
+# setup simulation
+#
+print('\n\tSetting up simulation...')
+
+# generate mesh
+try:
+	assert os.path.isfile('base.rea')
+except AssertionError:
+	subprocess.call('./generateMesh', shell=True)
+
+# convert mesh
+try:
+	assert os.path.isfile('pipe.re2')
+except AssertionError:
+	tfile = open('tmp.in', 'w')
+	tfile.write('base\n')
+	tfile.write('pipe\n')
+	tfile.close()
+	subprocess.call('./nek5_svn/bin/reatore2 < tmp.in', shell=True)
+	os.remove('tmp.in')
+
+# setup pipe.rea
+if os.path.isfile('pipe.rea'):
+	ofile = open('pipe.rea',     'r')
+	nfile = open('pipe.rea.tmp', 'w')
+	lines = ofile.readlines()
+	for line in lines:
+		if 'P002' in line:
+			nfile.write('   -5300.0     P002: VISCOS\n')
+		elif 'P011' in line:
+			nfile.write('      1000     P011: NSTEPS\n')
+		elif 'P015' in line:
+			nfile.write('       100     P015: IOSTEP\n')
+		elif 'P054' in line:
+			nfile.write('  -0.00000     P054: fixed flow rate dir: |p54|=1,2,3=x,y,z\n')
+		elif 'P055' in line:
+			nfile.write('   1.00000     P055: vol.flow rate (p54>0) or Ubar (p54<0)\n')
+		elif 'P068' in line:
+			nfile.write('         0     P068: iastep: freq for avg_all (0=iostep)\n')
+		else:
+			nfile.write(line)
+	ofile.close()
+	nfile.close()
+	os.rename('pipe.rea.tmp', 'pipe.rea')
+
+# generate map
+try:
+	assert os.path.isfile('pipe.map')
+except AssertionError:
+	tfile = open('tmp.in', 'w')
+	tfile.write('pipe\n')
+	tfile.write('0.05\n')
+	tfile.close()
+	subprocess.call('./nek5_svn/bin/genmap < tmp.in', shell=True)
+	os.remove('tmp.in')
+
+# compile nek
+try:
+	subprocess.call('./makenek pipe', shell=True)
+except:
+	print('\t*** Error compiling Nek5000 ***')
+
+# write SESSION.NAME
+try:
+	assert os.path.isfile('SESSION.NAME')
+except AssertionError:
+	nfile = open('SESSION.NAME', 'w')
+	nfile.write('pipe\n')
+	nfile.write(cwd + '\n')
+	nfile.close()
 
 print('\tDone.\n')
 
+
 #==============================================================================
-print('Setup done.')
+print('\n---------')
+print('All done.')
+print('---------\n')
