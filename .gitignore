@@ -4,3 +4,19 @@ pipeMeshNek
 generateMesh
 
 nek5_svn
+makenek.bak
+
+*.rea
+*.re2
+*.map
+makefile
+*.mod
+obj
+pipe.f
+compiler.out
+nek5000
+
+SESSION.NAME
+pipe.sch
+pipe0.f*
+sem_restart.txt
