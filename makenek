@@ -37,9 +37,9 @@ USR="avg_all.o sem.o IO_tools.o uparam.o chkpoint.o"
 
 
 # generic compiler flags
-G="-I./src-nek/ -I./src-usr/"
-#G="-I./src-nek/ -I./src-usr/ -g -Wall -Wextra -Warray-temporaries -Wconversion -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan"
-#G="-I./src-nek/ -I./src-usr/ -ggdb -fsanitize=address -fno-omit-frame-pointer"
+G="-I./src_nek/ -I./src_usr/"
+#G="-I./src_nek/ -I./src_usr/ -g -Wall -Wextra -Warray-temporaries -Wconversion -fbacktrace -ffree-line-length-0 -fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan"
+#G="-I./src_nek/ -I./src_usr/ -ggdb -fsanitize=address -fno-omit-frame-pointer"
 #valgrind -ggdb -Wunused
 
 # optimization flags
@@ -75,15 +75,15 @@ G="-I./src-nek/ -I./src-usr/"
 #VISIT_STOP=true
 
 ###############################################################################
-# CUSTOM SOURCE FILES (in ./src-nek/)
+# CUSTOM SOURCE FILES (in ./src_nek/)
 ###############################################################################
-for srcfile in ./src-nek/*.f
+for srcfile in ./src_nek/*.f
 do
     echo $srcfile
     file="${srcfile##*/}"
     echo safely moving $file to $SOURCE_ROOT
     mv -n $SOURCE_ROOT/$file $SOURCE_ROOT/$file.bkp
-    cp ./src-nek/$file $SOURCE_ROOT/$file
+    cp ./src_nek/$file $SOURCE_ROOT/$file
 done
 
 ###############################################################################
@@ -104,7 +104,7 @@ make -j4 -f makefile 2>&1 | tee compiler.out
 ###############################################################################
 # RESTORE ORIGINAL SOURCE
 ###############################################################################
-for srcfile in ./src-nek/*.f
+for srcfile in ./src_nek/*.f
 do
     file="${srcfile##*/}"
     echo restoring original $file in $SOURCE_ROOT
