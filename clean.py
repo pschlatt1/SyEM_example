@@ -27,7 +27,7 @@ except OSError:
 	print('nek5_svn not present')
 
 try:
-	os.remove('makenek')
-	print('removing makenek')
+	os.rename('makenek.bak', 'makenek')
+	print('restoring original makenek')
 except OSError:
 	print('makenek not present')

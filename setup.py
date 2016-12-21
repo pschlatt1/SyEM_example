@@ -96,6 +96,7 @@ if os.path.isfile('makenek'):
 			nfile.write(line)
 	ofile.close()
 	nfile.close()
+	os.rename('makenek',     'makenek.bak')
 	os.rename('makenek.tmp', 'makenek')
 	st = os.stat('makenek')
 	os.chmod('makenek', st.st_mode | stat.S_IEXEC)
