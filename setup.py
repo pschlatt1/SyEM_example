@@ -4,7 +4,7 @@
 # jcanton@mech.kth.se
 
 
-import os, shutil, subprocess, platform
+import os, shutil, subprocess, platform, stat
 
 # get platform
 pltfrm = platform.system()
@@ -47,7 +47,7 @@ print('\n\tImport Nek5000...')
 try:
 	assert os.path.exists('./nek5_svn')
 except AssertionError:
-	print('\t(Accept the certificate)')
+	print("\n\t*** Accept nek's certificate ***\n")
 	subprocess.call('svn co https://svn.mcs.anl.gov/repos/nek5 nek5_svn', shell=True)
 	os.chdir('./nek5_svn')
 	subprocess.call('svn up -r 1093', shell=True)
@@ -78,11 +78,13 @@ except AssertionError:
 	subprocess.call('/bin/bash maketools all', shell=True)
 	os.chdir('../../../')
 
-# copy and setup makenek
-try:
-	assert os.path.isfile('makenek')
-except AssertionError:
-	shutil.copy('nek5_svn/trunk/nek/makenek', 'makenek')
+# we do not need this as we use a modified makenek
+## # copy makenek
+## try:
+## 	assert os.path.isfile('makenek')
+## except AssertionError:
+## 	shutil.copy('nek5_svn/trunk/nek/makenek', 'makenek')
+if os.path.isfile('makenek'):
 	ofile = open('makenek',     'r')
 	nfile = open('makenek.tmp', 'w')
 	lines = ofile.readlines()
@@ -95,6 +97,9 @@ except AssertionError:
 	ofile.close()
 	nfile.close()
 	os.rename('makenek.tmp', 'makenek')
+	st = os.stat('makenek')
+	os.chmod('makenek', st.st_mode | stat.S_IEXEC)
+
 
 print('\tDone.\n')
 

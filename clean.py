@@ -25,3 +25,9 @@ try:
 	print('removing nek5_svn')
 except OSError:
 	print('nek5_svn not present')
+
+try:
+	os.remove('makenek')
+	print('removing makenek')
+except OSError:
+	print('makenek not present')
