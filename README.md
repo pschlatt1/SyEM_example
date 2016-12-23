@@ -20,7 +20,7 @@ The svn version 1093 of [Nek5000](https://nek5000.mcs.anl.gov/) (automatically f
  - to launch the simulation run `mpirun -np X ./nek5000 2>&1 | tee logfile`, where `X` is the number of processes you wish to use (or submit to a queuing system with an appropriate script).
 
 ### DF-SyEM
-Turbulence at inlet is "generated" with divergence-free synthetic eddy method (DF-SyEMiso)
+Turbulence is generated at the inflow boundary with a divergence-free synthetic eddy method (DF-SyEM)
 
 References:
  - Poletto, Ruggero: Divergence free development of the synthetic eddy method in order to improve synthetic turbulence for embedded les simulations, PhD Thesis, The University of Manchester, 2015.
