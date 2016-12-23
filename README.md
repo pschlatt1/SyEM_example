@@ -7,6 +7,7 @@ Developed by<br />
 Jacopo Canton - jcanton@mech.kth.se<br />
 Lorenz Hufnagel - hufnagel@kth.se<br />
 Philipp Schlatter - pschlatt@mech.kth.se<br />
+and based on a code by Oana Marin and Elia Merzari (ANL).
 
 ## Documentation
 A `setup.py` script is provided to get you started.
