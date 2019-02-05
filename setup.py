@@ -76,7 +76,7 @@ except AssertionError:
 	ofile.close()
 	nfile.close()
 	os.rename('maketools.tmp', 'maketools')
-	subprocess.call('/bin/bash maketools all', shell=True)
+	subprocess.call('/bin/bash maketools genmap n2to3 reatore2', shell=True)
 	os.chdir('../../../')
 
 # we do not need this as we use a modified makenek
