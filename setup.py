@@ -27,14 +27,12 @@ try:
 except AssertionError:
 	subprocess.call('git clone https://github.com/jcanton/pipeMeshNek.git', shell=True)
 
-# compile
-try:
-	assert os.path.isfile('generateMesh')
-except AssertionError:
-	os.chdir('./pipeMeshNek')
-	subprocess.call('make', shell=True)
-	os.rename('pipeMeshNek', '../generateMesh')
-	os.chdir('..')
+# pull and compile
+os.chdir('./pipeMeshNek')
+subprocess.call('git pull', shell=True)
+subprocess.call('make', shell=True)
+os.rename('pipeMeshNek', '../generateMesh')
+os.chdir('..')
 
 print('\tDone.\n')
 
