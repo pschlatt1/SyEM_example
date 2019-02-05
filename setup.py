@@ -140,9 +140,9 @@ if os.path.isfile('pipe.rea'):
 		elif 'P015' in line:
 			nfile.write('       100     P015: IOSTEP\n')
 		elif 'P054' in line:
-			nfile.write('  -0.00000     P054: fixed flow rate dir: |p54|=1,2,3=x,y,z\n')
+			nfile.write('   0.00000     P054: fixed flow rate dir: |p54|=1,2,3=x,y,z\n')
 		elif 'P055' in line:
-			nfile.write('   1.00000     P055: vol.flow rate (p54>0) or Ubar (p54<0)\n')
+			nfile.write('   0.00000     P055: vol.flow rate (p54>0) or Ubar (p54<0)\n')
 		elif 'P068' in line:
 			nfile.write('         0     P068: iastep: freq for avg_all (0=iostep)\n')
 		else:
