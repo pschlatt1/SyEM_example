@@ -13,7 +13,7 @@ c     JARRIN, Nicolas, et al. A synthetic-eddy-method for
 c     generating inflow conditions for large-eddy simulations. International
 c     Journal of Heat and Fluid Flow, 2006, 27. Jg., Nr. 4, S. 585-593.
 c
-c     Jacopo Canton, jcanton@mech.kth.se
+c     Jacopo Canton,   jcanton@mech.kth.se
 c     Lorenz Hufnagel, hufnagel@kth.se
 c-----------------------------------------------------------------------
 
@@ -237,6 +237,10 @@ c     ybmin = glmin(yc,8*nelv)
 c     xbmin = glmin(xc,8*nelv)
 c     xbmax = glmax(xc,8*nelv)
       z_inlet  = glmin(zc,8*nelv)
+
+      if (abs(bent_phi).gt.1e-10) then
+         z_inlet  = z_inlet + z_offset
+      endif
 
       zbmin = z_inlet - sigma_max
       zbmax = z_inlet + sigma_max
