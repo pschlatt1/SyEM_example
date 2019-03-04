@@ -1,7 +1,0 @@
-!     include file to store user parameters
-      real bent_phi
-      real bent_radius
-      real z_offset
-
-!     common blocks
-      common /UPARAM/ bent_phi, bent_radius, z_offset
