@@ -6,9 +6,6 @@ generateMesh
 nek5_svn
 makenek.bak
 
-*.rea
-*.re2
-*.map
 makefile
 *.mod
 obj
