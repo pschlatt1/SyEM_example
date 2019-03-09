@@ -1,22 +1,10 @@
 c Divergence free Synthetic eddy method module for NEK5000
 c
-c User needs to provide 
-c  -dimensions of the eddy box (in usrdat)
-c  -A few input parameters 
-c     (e.g. # of eddies, max(sigma), ..
-c  -sem_input.txt 
-c     containing 
-c       -1d-pos
-c       -k(pos)
-c       -epsilon(pos)
-c       -umean(pos)
-c
-c   The latter two are are e.g. 
-c   generated with a  Matlab script from DNS data
-c
-c Lorenz Hufnagel hufnagel@kth.se
-c Jacopo Canton jcanton@mech.kth.se
-c Based on the code by Oana Marin
+c     this is an updated version for v19 Nek5000, based
+c     on the previous code by 
+c     Lorenz Hufnagel hufnagel@kth.se
+c     Jacopo Canton jcanton@mech.kth.se
+c     (original code by Oana Marin)
 c
 
       module SEM
@@ -80,14 +68,10 @@ c-----------------------------------------------------------------------
 
       subroutine SEMinit()
       use SEM
-      use AVG, only: nElperFace
       implicit none
 
-      include 'SIZE_DEF'
       include 'SIZE'  ! L[XYZ]1,LELV
-      include 'GEOM_DEF'
       include 'GEOM' ! XM1
-      include 'PARALLEL_DEF'
       include 'PARALLEL'
 
       real vel_interp, tke_interp, dissip_interp, sigmal, radius
@@ -98,11 +82,6 @@ c-----------------------------------------------------------------------
 
       logical semstop
 
-      if (nElInlet.ne.nElperFace) then
-        if (nid.eq.0) write(*,*) 
-     $'ABORT For pipe flow, you probably want nElperFace==nElinlet'
-        call exitti
-      endif
 
 c
 c     CHECK FOR INPUT FILE
@@ -201,74 +180,6 @@ c     Vb = (xbmax-xbmin)*(ybmax-ybmin)*(zbmax-zbmin)
 
 c-----------------------------------------------------------------------
 
-!     read parameters SEM
-      subroutine SEM_param_in(fid)
-        use SEM, only: nEddy, yplus_cutoff, nElInlet, 
-     $                 sigma_max, u0
-      implicit none
-
-      include 'SIZE_DEF'
-      include 'SIZE'            !
-      include 'PARALLEL_DEF' 
-      include 'PARALLEL'        ! ISIZE, WDSIZE, LSIZE,CSIZE
-
-!     argument list
-      integer fid               ! file id
-
-!     local variables
-      integer ierr
-
-!     namelists
-      namelist /SEM_list/ nEddy, nElInlet, yplus_cutoff, sigma_max, u0
-!-----------------------------------------------------------------------
-!     default values
-      nEddy = 5000
-      nElInlet = 256
-      yplus_cutoff = 0.4
-      sigma_max = 0.25
-      u0 = 1.0
-!     read the file
-      ierr=0
-      if (NID.eq.0) then
-         read(unit=fid,nml=SEM_list,iostat=ierr)
-      endif
-      call err_chk(ierr,'Error reading SEM parameters.$')
-
-!     broadcast data
-      call bcast(nEddy,ISIZE)
-      call bcast(nElInlet,ISIZE)
-      call bcast(yplus_cutoff, WDSIZE)
-      call bcast(sigma_max, WDSIZE)
-      call bcast(u0, WDSIZE)
-
-      return
-      end  subroutine SEM_param_in
-!***********************************************************************
-!     write parameters checkpoint
-      subroutine SEM_param_out(fid)
-        use SEM, only: nEddy, nElInlet, sigma_max, yplus_cutoff, u0
-      implicit none
-
-      include 'SIZE_DEF'
-      include 'SIZE'            !
-
-!     argument list
-      integer fid               ! file id
-
-!     local variables
-      integer ierr
-
-!     namelists
-      namelist /SEM_list/ nEddy, nElInlet, yplus_cutoff, sigma_max, u0
-!-----------------------------------------------------------------------
-      ierr=0
-      if (NID.eq.0) then
-         write(unit=fid,nml=SEM_list,iostat=ierr)
-      endif
-      call err_chk(ierr,'Error writing SEM parameters.$')
-
-      return
-      end subroutine SEM_param_out
 
 C=======================================================================
 C SEM Main routine
@@ -276,13 +187,9 @@ C=======================================================================
       subroutine synthetic_eddies
         use SEM
       implicit none
-      include 'SIZE_DEF'
       include 'SIZE'
-      include 'TSTEP_DEF'
       include 'TSTEP' ! ISTEP,IOSTEP
-      include 'GEOM_DEF'
       include 'GEOM' ! XM1
-      include 'PARALLEL_DEF'
       include 'PARALLEL' ! XM1
     
       real    ff,fx,fy,fz,
@@ -388,12 +295,8 @@ c     Generate eddy location randomly in bounding box (only on rank=0)
 
       real, parameter :: twoPi = 6.283185307179586476925286766
       double precision, external :: rnd_loc
-      include 'SIZE_DEF'
       include 'SIZE'
-      include 'TSTEP_DEF'
       include 'TSTEP' ! ISTEP,IOSTEP
-      include 'USERPAR'
-      include 'PARALLEL_DEF'
       include 'PARALLEL'
 
       integer, intent(in) :: n
@@ -409,9 +312,6 @@ c     in polar coordinates (!) only on rank-0
       theta = rnd_loc(0.,twoPI) 
 
       ex(n) = rho * cos(theta) 
-      if (abs(bent_phi).gt.1e-10) then
-        ex(n) = ex(n) + bent_radius
-      endif
 
       ey(n) = rho * sin(theta)
       if(istep.eq.0)then
@@ -456,9 +356,7 @@ c     Convect eddies and recycle by regenerating the location
       subroutine advect_recycle_eddies(n)
       use SEM, only: zbmax,u0, neddy, ex, ey, ez, eps
       implicit none
-      include 'SIZE_DEF' ! DT
       include 'SIZE' ! DT
-      include 'TSTEP_DEF' ! DT
       include 'TSTEP'
 
       integer, intent(in) :: n
@@ -521,79 +419,6 @@ c     point of interest
       use SEM, only: restart_file, ex, ey, ez, eps, neddy
       implicit none
 
-      include 'SIZE_DEF'
-      include 'SIZE'
-      include 'PARALLEL_DEF'
-      include 'PARALLEL'
-      include 'TSTEP_DEF'
-      include 'TSTEP' ! ISTEP,IOSTEP
-      include 'CHKPOINT'
-
-      integer j, neddy_tmp
-
-      if (istep.eq.0) then
-        if (IFCHKPTRST) then 
-
-      ! read in eddy data from files:
-      ! ex,ey,ez, eps, maybe iseed
-
-       if (nid.eq.0) then
-         open(unit=97,form='formatted',file=restart_file)
-
-         read(97,*) ex(1)  ! trash this
-
-         read(97,*) neddy_tmp
-
-         if (.NOT.neddy_tmp.eq.neddy) then
-           write(*,*)
-     $'ABORT Trying to restart from restart file with different nEddy'
-           call exit
-         endif
-
-         read(97,*) (ex(j),j=1,neddy)  
-         read(97,*) (ey(j),j=1,neddy)  
-         read(97,*) (ez(j),j=1,neddy)  
-         read(97,*) (eps(1,j),j=1,neddy)  
-         read(97,*) (eps(2,j),j=1,neddy)  
-         read(97,*) (eps(3,j),j=1,neddy)  
-
-         close(97)
-       endif
-
-
-      call bcast(neddy,ISIZE)
-      call bcast(ex, neddy*WDSIZE)
-      call bcast(ey, neddy*WDSIZE)
-      call bcast(ez, neddy*WDSIZE)
-      call bcast(eps,3*neddy*ISIZE)
-
-      if (nid.eq.0) write(*,*) 'Read in SEM restart files'
-
-      endif
-
-      else
-        if (mod(istep,CHKPTSTEP).eq.0) then
-      ! dump restart files
-      ! Data is gathered already
-
-      ! maybe also store the seed
-       
-       if (nid.eq.0) then
-         open(unit=97,form='formatted',file=restart_file)
-          write(97,*) TIME
-          write(97,*) neddy
-          write(97,*) (ex(j),j=1,neddy)  
-          write(97,*) (ey(j),j=1,neddy)  
-          write(97,*) (ez(j),j=1,neddy)  
-          write(97,*) (eps(1,j),j=1,neddy)  
-          write(97,*) (eps(2,j),j=1,neddy)  
-          write(97,*) (eps(3,j),j=1,neddy)  
-
-          close(97)
-        endif
-        endif
-
-      endif
 
         return
       end subroutine SEMrestart

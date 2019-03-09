@@ -1,2 +1,0 @@
-!     missing definitions in ADJOINT
-      real VXADJ, VYADJ, VZADJ, VXADJOLD, VYADJOLD, VZADJOLD 
