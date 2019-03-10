@@ -80,6 +80,7 @@ c-----------------------------------------------------------------------
       integer e, i, j, eg, emod
       real, parameter :: pi = 3.14159265358979323846264338327950288
 
+      
       logical semstop
 
 
@@ -116,7 +117,14 @@ c     Read infile
       enddo
       close(fid)
 
+c     rescale
+c      do i=1,nlines
+c         umean(i) = umean(i)/(pi/4.)
+c         tke(i) = tke(i)/(pi/4)**2
+c         dissip(i) = dissip(i)/(pi/4)**2
+c      end do
 
+      
       allocate(u_sem(lx1,ly1,lz1,lelv))
       allocate(v_sem(lx1,ly1,lz1,lelv))
       allocate(w_sem(lx1,ly1,lz1,lelv))
@@ -185,47 +193,47 @@ C=======================================================================
 C SEM Main routine
 C=======================================================================
       subroutine synthetic_eddies
-        use SEM
+      use SEM
       implicit none
       include 'SIZE'
-      include 'TSTEP' ! ISTEP,IOSTEP
-      include 'GEOM' ! XM1
-      include 'PARALLEL' ! XM1
+      include 'TSTEP'           ! ISTEP,IOSTEP
+      include 'GEOM'            ! XM1
+      include 'PARALLEL'        ! XM1
     
-      real    ff,fx,fy,fz,
-     &           rr, rrx,rry,rrz
+      real ff,fx,fy,fz,
+     &     rr, rrx,rry,rrz
       real, parameter :: sqrt32 = sqrt(3./2)
+      real :: bv1,bv2,bv3
 
-      integer neddy_ll
-      save    neddy_ll
+      integer, save :: neddy_ll
 
-      real  work
+      real ::  work
       real wk_e(neddy*3)
       integer clock, e,eg, 
-     &      i,j,ne,nv,iseed
-      !     functions
+     &     i,j,ne,nv,iseed
+c     functions
       real dnekclock, sqrtn
   
 c --- generate initial eddy distribution ----
     
       if (istep.eq.0) then
-        iseed = int(dnekclock())
-        call  ZBQLINI(iseed)
+         iseed = int(dnekclock())
+         call  ZBQLINI(iseed)
 
 c     Generate eddies with locations ex,ey,ez
-        do i=1,neddy
-          call gen_eddy(i)
-        enddo   
+         do i=1,neddy
+            call gen_eddy(i)
+         enddo   
       else 
-        call advect_recycle_eddies(neddy)
+         call advect_recycle_eddies(neddy)
       endif
 
 c     Load/Save restart files
       call SEMrestart
 
-c ---- compute velocity contribution of eddies ------
+c     ---- compute velocity contribution of eddies ------
 
-      nv = nx1*ny1*nz1*nelv ! max number of gird points per processor
+      nv = nx1*ny1*nz1*nelv     ! max number of gird points per processor
 
       call rzero(u_sem,nv)
       call rzero(v_sem,nv)
@@ -239,51 +247,86 @@ c ---- compute velocity contribution of eddies ------
 c         if (abs(zm1(1,1,1,e)-z_inlet).lt.1e-13) then
         if (eg.le.nElInlet) then 
 
-        do j=1,ly1
-        do i=1,lx1
+           do j=1,ly1
+              do i=1,lx1
 
-           u_sem(i,j,1,e) = 0
-           v_sem(i,j,1,e) = 0
-           w_sem(i,j,1,e) = umean_inlet(i,j,eg)
+                 u_sem(i,j,1,e) = 0
+                 v_sem(i,j,1,e) = 0
+                 w_sem(i,j,1,e) = umean_inlet(i,j,eg)
 
-           do ne=1,neddy
-            rrx = (xm1(i,j,1,e)-ex(ne))
-            rry = (ym1(i,j,1,e)-ey(ne))
-            rrz = (zm1(i,j,1,e)-ez(ne))
+                 do ne=1,neddy
+                    rrx = (xm1(i,j,1,e)-ex(ne))
+                    rry = (ym1(i,j,1,e)-ey(ne))
+                    rrz = (zm1(i,j,1,e)-ez(ne))
+                    
+                    rr = sqrt(rrx*rrx + rry*rry + rrz*rrz)
 
-            rr = sqrt(rrx*rrx + rry*rry + rrz*rrz)
+                    if (rr.lt.sigma_inlet(i,j,eg)) then
+                       fx = rry*eps(3,ne)-rrz*eps(2,ne)
+                       fy = rrz*eps(1,ne)-rrx*eps(3,ne)
+                       fz = rrx*eps(2,ne)-rry*eps(1,ne)
 
-            if (rr.lt.sigma_inlet(i,j,eg)) then
-              fx = rry*eps(3,ne)-rrz*eps(2,ne)
-              fy = rrz*eps(1,ne)-rrx*eps(3,ne)
-              fz = rrx*eps(2,ne)-rry*eps(1,ne)
+                       fx = fx *
+     &                      intensity_inlet(i,j,eg)/sigma_inlet(i,j,eg)
+                       fy = fy *
+     &                      intensity_inlet(i,j,eg)/sigma_inlet(i,j,eg)
+                       fz = fz *
+     &                      intensity_inlet(i,j,eg)/sigma_inlet(i,j,eg)
+                       
+                       ff=sqrt(16.*Vb/(15.*pi*sigma_inlet(i,j,eg)**3.0))
+                       ff=ff *
+     &                      sin(PI*rr/sigma_inlet(i,j,eg))**2.0*rr/
+     &                      sigma_inlet(i,j,eg)
+                       ff= ff/((rr/sigma_inlet(i,j,eg))**3.0)
+                       ff = ff*sqrtn
 
-           fx = fx * intensity_inlet(i,j,eg)/sigma_inlet(i,j,eg)
-           fy = fy * intensity_inlet(i,j,eg)/sigma_inlet(i,j,eg)
-           fz = fz * intensity_inlet(i,j,eg)/sigma_inlet(i,j,eg)
-
-      ff=sqrt(16.*Vb/(15.*pi*sigma_inlet(i,j,eg)**3.0))
-      ff=ff * sin(PI*rr/sigma_inlet(i,j,eg))**2.0*rr/sigma_inlet(i,j,eg)
-      ff= ff/((rr/sigma_inlet(i,j,eg))**3.0)
-      ff = ff*sqrtn
-
-              u_sem(i,j,1,e) = u_sem(i,j,1,e) + fx*ff
-              v_sem(i,j,1,e) = v_sem(i,j,1,e) + fy*ff
-              w_sem(i,j,1,e) = w_sem(i,j,1,e) + fz*ff
-            endif
-           enddo         
+                       u_sem(i,j,1,e) = u_sem(i,j,1,e) + fx*ff
+                       v_sem(i,j,1,e) = v_sem(i,j,1,e) + fy*ff
+                       w_sem(i,j,1,e) = w_sem(i,j,1,e) + fz*ff
+                    endif
+                 enddo         
 
 
-           bulk_vel_diff = bulk_vel_diff + area(i,j,5,e)*w_sem(i,j,1,e)
+                 bulk_vel_diff = bulk_vel_diff +
+     &                area(i,j,5,e)*w_sem(i,j,1,e)
 
-        enddo
-        enddo
-      endif 
+              enddo
+           enddo
+        endif 
       enddo
-
 
       call gop(bulk_vel_diff,work,'+  ',1)
       bulk_vel_diff =  u0 - bulk_vel_diff/inlet_area
+
+      
+c     check a few things
+      bv1 = 0.
+      bv2 = 0.
+      bv3 = 0.
+      do e=1,nelv
+         eg = lglel(e)
+c         if (abs(zm1(1,1,1,e)-z_inlet).lt.1e-13) then
+         if (eg.le.nElInlet) then 
+            do j=1,ly1
+               do i=1,lx1
+                 bv1 = bv1 +
+     &                 area(i,j,5,e)*(w_sem(i,j,1,e)+bulk_vel_diff)
+                 bv2 = bv2 + umean_inlet(i,j,eg)*area(i,j,5,e)
+                 bv3 = bv3 + area(i,j,5,e)
+
+               end do
+            end do
+         end if
+      end do
+
+      call gop(bv1,work,'+  ',1)
+      call gop(bv2,work,'+  ',1)
+      call gop(bv3,work,'+  ',1)
+
+      if (nid.eq.0)
+     &     write(*,*) '##SyEM :: ub=',
+     &     bv1/inlet_area,' A=',inlet_area, ' b=',bulk_vel_diff
+      
 
       return
       end subroutine synthetic_eddies
@@ -420,7 +463,7 @@ c     point of interest
       implicit none
 
 
-        return
+      return
       end subroutine SEMrestart
 
 
