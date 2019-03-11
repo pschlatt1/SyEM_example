@@ -10,14 +10,12 @@ Philipp Schlatter - pschlatt@mech.kth.se<br />
 and based on a code by Oana Marin and Elia Merzari (ANL).
 
 ## Documentation
-A `setup.py` script is provided to get you started.
-
-The [pipeMeshNek](https://github.com/jcanton/pipeMeshNek) software (automatically fetched by `setup.py`) is used for the generation of the mesh and .rea file parameters.
-The svn version 1093 of [Nek5000](https://nek5000.mcs.anl.gov/) (automatically fetched) is used to run the example.
-
-### Setup and execution
- - run `./setup.py` to fetch and compile the necessary tools, including [pipeMeshNek](https://github.com/jcanton/pipeMeshNek) and [Nek5000](https://nek5000.mcs.anl.gov/).
- - to launch the simulation run `mpirun -np X ./nek5000 2>&1 | tee logfile`, where `X` is the number of processes you wish to use (or submit to a queuing system with an appropriate script).
+This branch is ported to v19 of Nek5000. Open issues are (to be worked on) are:
+* too many pressure iterations, which means that the velocity field has a non-zero divergence
+* restart of the SyEM has been removed for the time being
+* parallelisation needs to be looked at
+* isotropy is assumed which is not good close to walls.
+* statistics are removed.
 
 ### DF-SyEM
 Turbulence is generated at the inflow boundary with a divergence-free synthetic eddy method (DF-SyEM)
