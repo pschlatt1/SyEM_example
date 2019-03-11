@@ -75,14 +75,61 @@ c-----------------------------------------------------------------------
       include 'PARALLEL'
 
       real vel_interp, tke_interp, dissip_interp, sigmal, radius
-      real work
+      real work,d_out
       integer fid, nlines
-      integer e, i, j, eg, emod
+      integer e, i, j, eg, emod, ifnd
       real, parameter :: pi = 3.14159265358979323846264338327950288
-
+      real, external :: glmin, glmax 
+      integer ntot
       
       logical semstop
 
+c
+c     Read parameters
+c
+c     default SyEM parameters
+      nEddy = 10000
+      nElInlet = 68
+      yplus_cutoff = 0.472384
+      sigma_max = 0.5497
+      u0 = 1.0
+
+      if (nid.eq.0) then	
+         call finiparser_getDbl(d_out,'_syem:neddy',ifnd)
+         if (ifnd.eq.1) neddy = d_out
+         call finiparser_getDbl(d_out,'_syem:nelinlet',ifnd)
+         if (ifnd.eq.1) nelinlet = d_out
+         call finiparser_getDbl(d_out,'_syem:yplus_cutoff',ifnd)
+         if (ifnd.eq.1) yplus_cutoff = d_out
+         call finiparser_getDbl(d_out,'_syem:sigma_max',ifnd)
+         if (ifnd.eq.1) sigma_max = d_out
+         call finiparser_getDbl(d_out,'_syem:u0',ifnd)
+         if (ifnd.eq.1) u0 = d_out
+      end if
+      call bcast(neddy,isize)
+      call bcast(nelinlet,isize)
+      call bcast(yplus_cutoff,wdsize)
+      call bcast(sigma_max,wdsize)
+      call bcast(u0,wdsize)
+            
+c     The bounding "box" (actually a cylinder for the pipe)
+c     is just large enough to contain the compact support of all
+c     eddies. 
+
+      NTOT      = lx1*ly1*lz1*NELT
+
+      xbmax = glmax(xm1,ntot)
+      xbmin = glmin(xm1,ntot)
+      ybmax = glmax(ym1,ntot)
+      ybmin = glmin(ym1,ntot)
+      z_inlet = glmin(zm1,ntot)
+
+      zbmin = z_inlet - sigma_max
+      zbmax = z_inlet + sigma_max
+
+      if (nid.eq.0) write(*,*) '## seminit: ',
+     &    xbmin,xbmax,ybmin,ybmax,zbmin,zbmax,z_inlet
+      
 
 c
 c     CHECK FOR INPUT FILE

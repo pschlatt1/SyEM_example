@@ -1,0 +1,39 @@
+# par file for SyEM in a straight pipe
+#
+
+[GENERAL]
+	stopAt = numSteps #endTime
+	numSteps = 1000
+	dt = -3e-03
+	writeControl = timeStep #runTime
+	writeInterval = 10
+	dealiasing = yes
+	#userparam01 = 1
+
+[PROBLEMTYPE]
+	equation = incompNS # incompLinNS
+	#numberOfPerturbations = 1 # for linear solver
+	#solveBaseflow = no # for linear solver
+	variableProperties = no
+
+[PRESSURE]
+	residualtol = 1e-08
+	residualproj = yes
+
+[VELOCITY]
+	viscosity = -5000
+	density = 1.
+	residualtol = 1e-08
+	residualproj = yes
+
+[_SYEM]
+	nEddy = 10000
+      	nElInlet = 68
+      	yplus_cutoff = 0.472384
+      	sigma_max = 0.5497
+      	u0 = 1.0
+
+
+
+
+
