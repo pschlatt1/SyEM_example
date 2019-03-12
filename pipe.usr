@@ -1,0 +1,93 @@
+      subroutine uservp (ix,iy,iz,ieg)
+      return
+      end
+
+      subroutine userf  (ix,iy,iz,ieg)
+      return
+      end
+
+      subroutine userq  (ix,iy,iz,ieg)
+      return
+      end
+
+      subroutine userchk
+      implicit none
+
+      call synthetic_eddies
+
+      return
+      end
+
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      use SEM, only: u_sem, v_sem, w_sem, bulk_vel_diff
+
+      implicit none
+
+      include 'SIZE' 
+      include 'PARALLEL'  ! GLLEL
+      include 'NEKUSE'
+
+      integer, intent(in) :: ix,iy,iz,iside,ieg
+      integer iel
+
+      iel=gllel(ieg)
+      ux= u_sem(ix,iy,iz,iel) 
+      uy= v_sem(ix,iy,iz,iel) 
+      uz= w_sem(ix,iy,iz,iel) + bulk_vel_diff  
+
+      temp = 0.
+
+      return
+      end
+      
+
+      subroutine useric (ix,iy,iz,ieg)
+      use SEM, only: nElinlet, umean_inlet
+      implicit none
+
+      include 'SIZE'  
+      include 'NEKUSE'
+
+      integer, intent(in) :: ix,iy,iz,ieg
+
+      integer ex
+      real vel
+
+      ex = mod(ieg-1,nElInlet)+1 
+      vel = umean_inlet(ix,iy,ex)
+
+      Uy = 0.
+      Ux = 0.
+      Uz = vel
+      
+      return
+      end
+
+      subroutine usrdat
+      return
+      end
+
+      subroutine usrdat2
+      implicit none
+
+      include 'SIZE'
+      include 'GEOM' 
+
+c     Rescale incoming pipe to diameter 1 and length 8
+      if (nid.eq.0) write(6,*) '## userdat2: Rescale geometry' 
+      call rescale_x(xm1,-0.5,0.5)
+      call rescale_x(ym1,-0.5,0.5)
+      call rescale_x(zm1,0.,8.)
+
+      return
+      end
+
+
+
+      subroutine usrdat3
+      implicit none
+
+      call SEMinit
+ 
+      return
+      end
